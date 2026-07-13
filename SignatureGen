@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Amplified IM — Signature Generator</title>
+<style>
+  :root{
+    --blue:#0089c2;
+    --blue-dark:#046a99;
+    --green:#17d67b;
+    --ink:#1f2933;
+    --muted:#6b7280;
+    --line:#e5e7eb;
+    --bg:#f5f7f8;
+    --card:#ffffff;
+    --warn-bg:#fff7ed;
+    --warn-border:#fb923c;
+    --ok-bg:#f0fdf6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px;}
+
+  /* ---------- Header ---------- */
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--green);flex:0 0 auto;}
+  .top h1{font-size:22px;margin:0;font-weight:700;color:var(--ink);}
+  .top h1 span{color:var(--blue);}
+  .sub{color:var(--muted);font-size:14.5px;margin:6px 0 30px;max-width:640px;}
+
+  /* ---------- Generator layout ---------- */
+  .generator{display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start;}
+  @media (max-width:820px){.generator{grid-template-columns:1fr;}}
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px 22px 24px;
+  }
+  .panel h2{font-size:15px;margin:0 0 16px;color:var(--ink);}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+  .field .hint{font-size:12px;color:var(--muted);margin-top:5px;}
+  .field input{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:9px;
+    font-size:14px;
+    font-family:inherit;
+    color:var(--ink);
+    background:#fff;
+  }
+  .field input:focus{outline:2px solid var(--blue);outline-offset:1px;border-color:var(--blue);}
+  .req{color:var(--blue);}
+  .divider-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;margin:4px 0 14px;}
+  .checkbox-field{display:flex;flex-direction:column;}
+  .checkbox-label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;margin-bottom:0;}
+  .checkbox-label input{width:16px;height:16px;accent-color:var(--blue);cursor:pointer;flex:0 0 auto;}
+
+  .theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;}
+  .theme-card{
+    border:1px solid var(--line);background:#fff;border-radius:10px;
+    padding:10px 6px;font-size:11px;font-weight:600;color:var(--ink);
+    cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;
+    font-family:inherit;text-align:center;line-height:1.2;
+  }
+  .theme-card:hover{border-color:#c9d4da;}
+  .theme-card[aria-pressed="true"]{border-color:var(--blue);box-shadow:0 0 0 2px rgba(0,137,194,.15);}
+  .swatch-row{display:flex;gap:4px;}
+  .swatch{width:13px;height:13px;border-radius:50%;display:inline-block;}
+
+  /* ---------- Preview ---------- */
+  .preview-shell{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px;
+  }
+  .preview-shell h2{font-size:15px;margin:0 0 14px;}
+  .preview-box{
+    border:1px dashed var(--line);
+    border-radius:10px;
+    padding:20px;
+    background:#fafbfc;
+    overflow-x:auto;
+  }
+  .empty-state{color:var(--muted);font-size:13.5px;}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+  button{
+    font-family:inherit;
+    font-size:14px;
+    font-weight:600;
+    border-radius:9px;
+    padding:11px 16px;
+    cursor:pointer;
+    border:1px solid transparent;
+  }
+  button:disabled{cursor:not-allowed;opacity:.5;}
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-primary:hover:not(:disabled){background:var(--blue-dark);}
+  .btn-secondary{background:#fff;color:var(--ink);border:1px solid var(--line);}
+  .btn-secondary:hover:not(:disabled){border-color:var(--blue);color:var(--blue);}
+  .copied-msg{
+    display:none;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+    color:#0a8a4a;
+    font-weight:600;
+    margin-top:12px;
+  }
+
+  .checklist{list-style:none;margin:18px 0 0;padding:0;font-size:13px;color:var(--muted);}
+  .checklist li{padding-left:20px;position:relative;margin-bottom:6px;}
+  .checklist li::before{
+    content:"✓";
+    position:absolute;left:0;top:0;
+    color:var(--green);font-weight:700;
+  }
+
+  /* ---------- Guide section ---------- */
+  .guide{margin-top:56px;}
+  .guide-head{margin-bottom:28px;}
+  .guide-head h2{font-size:20px;margin:0 0 6px;}
+  .guide-head p{color:var(--muted);font-size:14.5px;margin:0;max-width:640px;}
+
+  .steps{list-style:none;margin:0;padding:0;position:relative;}
+  .steps::before{
+    content:"";
+    position:absolute;
+    left:23px;top:8px;bottom:8px;
+    width:2px;
+    background:var(--line);
+  }
+  .step{display:grid;grid-template-columns:48px 1fr;gap:18px;margin-bottom:26px;position:relative;}
+  .step-icon{
+    width:48px;height:48px;border-radius:50%;
+    background:#eaf6fb;border:1px solid #d6ecf5;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--blue);position:relative;z-index:1;flex:0 0 auto;
+  }
+  .step-body{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .step-eyebrow{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin-bottom:4px;}
+  .step-body h3{font-size:15px;margin:0 0 6px;}
+  .step-body p{font-size:13.5px;color:var(--muted);margin:0;}
+  .step-body code{background:#f1f5f8;border-radius:5px;padding:1px 6px;font-size:12.5px;color:var(--ink);}
+
+  .callout{border-radius:12px;padding:16px 18px;margin-top:10px;font-size:13.5px;}
+  .callout.warn{background:var(--warn-bg);border:1px solid var(--warn-border);}
+  .callout.warn strong{display:block;margin-bottom:4px;color:#9a3412;}
+  .callout.ok{background:var(--ok-bg);border:1px solid #bbf0d3;}
+  .callout.ok strong{display:block;margin-bottom:4px;color:#0a7a44;}
+
+  footer{margin-top:50px;font-size:12px;color:var(--muted);text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="dot"></div>
+    <h1>Amplified <span></span> — Signature Generator (DO NOT SHARE)</h1>
+  </div>
+  <p class="sub">Fill in your details, copy the result, and paste it straight into your Gmail Signature.</p>
+
+  <div class="generator">
+    <!-- FORM -->
+    <div class="panel">
+      <h2>Your details</h2>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input id="isDept" type="checkbox" />
+          <span>This is for a department, not a person</span>
+        </label>
+        <div class="hint">Check this if the signature is for a team/department instead of an individual — the title field is skipped.</div>
+      </div>
+
+      <div class="field">
+        <label for="fullName" id="nameLabel">Full name <span class="req">*</span></label>
+        <input id="fullName" type="text" placeholder="e.g. Haley Beatrice Rodriguez" autocomplete="off" />
+      </div>
+
+      <div class="field" id="titleField">
+        <label for="jobTitle">Title <span class="req">*</span></label>
+        <input id="jobTitle" type="text" placeholder="e.g. Brand Relations, Marketing, and Events Manager" autocomplete="off" />
+        <div class="hint">Shown exactly as typed — nothing is added after it.</div>
+      </div>
+
+      <div class="divider-label">Branding</div>
+
+      <div class="field">
+        <label for="companyLine">Team or department line <span style="color:var(--muted);font-weight:500;">(optional)</span></label>
+        <input id="companyLine" type="text" placeholder="e.g. Amplified Finance &amp; Accounting Department" autocomplete="off" />
+        <div class="hint">Leave blank to leave it out entirely. If filled in, it's shown after your title/department name.</div>
+      </div>
+
+      <div class="divider-label">Color theme</div>
+      <div class="theme-grid" id="themeGrid">
+        <button type="button" class="theme-card" data-theme="classic" aria-pressed="true">
+          <span class="swatch-row"><span class="swatch" style="background:#0089c2"></span><span class="swatch" style="background:#17d67b"></span></span>
+          Classic Bright
+        </button>
+        <button type="button" class="theme-card" data-theme="signal" aria-pressed="false">
+          <span class="swatch-row"><span class="swatch" style="background:#0c9d63"></span><span class="swatch" style="background:#0089c2"></span></span>
+          Deep Amp
+        </button>
+        <button type="button" class="theme-card" data-theme="slate" aria-pressed="false">
+          <span class="swatch-row"><span class="swatch" style="background:#333333"></span><span class="swatch" style="background:#0089c2"></span></span>
+          Minimal Amp
+        </button>
+      </div>
+      <div class="hint" style="margin-bottom:16px;">All three only mix our two brand colors with neutral grays — pick whichever feels right for your role.</div>
+
+      <div class="divider-label">Layout</div>
+      <div class="theme-grid" id="layoutGrid">
+        <button type="button" class="theme-card" data-layout="horizontal" aria-pressed="true">
+          Horizontal<br>logo&nbsp;left
+        </button>
+        <button type="button" class="theme-card" data-layout="stacked" aria-pressed="false">
+          Stacked<br>logo&nbsp;on&nbsp;top
+        </button>
+        <button type="button" class="theme-card" data-layout="compact" aria-pressed="false">
+          Compact<br>logo&nbsp;right
+        </button>
+      </div>
+      <div class="hint" style="margin-bottom:16px;">The logo, website and social links are identical in every layout — only the arrangement changes. - Horizontal logo Left, is recommended</div>
+
+      <div class="field">
+        <label for="email">Email <span style="color:var(--muted);font-weight:500;">(optional)</span></label>
+        <input id="email" type="email" placeholder="e.g. haley@amplifiedim.com" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label for="phone">Phone <span style="color:var(--muted);font-weight:500;">(optional)</span></label>
+        <input id="phone" type="text" placeholder="e.g. +1 (904) 555-0123" autocomplete="off" />
+        <div class="hint">Leave a field blank to leave it out of your signature.</div>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="preview-shell">
+      <h2>Preview</h2>
+      <div class="preview-box" id="previewBox">
+        <div class="empty-state" id="emptyState">Enter your name and title to see your signature here.</div>
+        <div id="signature-output" style="display:none;"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary" id="copyBtn" disabled>Copy signature</button>
+        <button class="btn-secondary" id="downloadBtn" disabled>Download as HTML file</button>
+      </div>
+      <div class="copied-msg" id="copiedMsg">✓ Copied — now paste it into Gmail's signature box.</div>
+
+      <ul class="checklist">
+        <li>Direct https:// links only — no Google Docs redirect links</li>
+        <li>Logo is always included and never substituted</li>
+        <li>Website and social links stay identical for everyone</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- GUIDE -->
+  <div class="guide">
+    <div class="guide-head">
+      <h2>Add it to Gmail</h2>
+      <p>Six steps, about two minutes. Do this once and you're done.</p>
+    </div>
+
+    <ol class="steps">
+      <li class="step">
+        <div class="step-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </div>
+        <div class="step-body">
+          <div class="step-eyebrow">Step 1</div>
+          <h3>Fill in the form above and generate your signature</h3>
+          <p>Enter your name and title (email and phone are optional). Your signature builds itself in the Preview box on the right as you type.</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <div class="step-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/></svg>
+        </div>
+        <div class="step-body">
+          <div class="step-eyebrow">Step 2</div>
+          <h3>Click "Copy signature"</h3>
+          <p>This copies the formatted signature itself — logo, colors and links included — ready to paste anywhere that accepts rich text.</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <div class="step-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        </div>
+        <div class="step-body">
+          <div class="step-eyebrow">Step 3</div>
+          <h3>In Gmail, open Settings</h3>
+          <p>Click the gear icon (top right) → <strong>See all settings</strong> → stay on the <strong>General</strong> tab → scroll down to the <strong>Signature</strong> section.</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <div class="step-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        </div>
+        <div class="step-body">
+          <div class="step-eyebrow">Step 4</div>
+          <h3>Create a new signature and paste</h3>
+          <p>Click <strong>Create new</strong>, name it (e.g. your own name), then click inside the empty box and paste (<code>Ctrl/Cmd + V</code>). Your formatted signature should appear, not raw code.</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <div class="step-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+        </div>
+        <div class="step-body">
+          <div class="step-eyebrow">Step 5</div>
+          <h3>Set it as default and save</h3>
+          <p>Below the signature box, set this signature for <strong>new emails</strong> and for <strong>replies/forwards</strong>. Scroll to the bottom of the page and click <strong>Save Changes</strong>.</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <div class="step-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6.5L4.5 17a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 8.5V2"/><path d="M9 2h6"/><path d="M8 16h8"/></svg>
+        </div>
+        <div class="step-body">
+          <div class="step-eyebrow">Step 6</div>
+          <h3>Send to Dom</h3>
+          <p>Write and send an email to <strong>domination@amplifiedim.com</strong> to test and control the current signatures, THANK YOU!</p>
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout warn">
+      <strong>Don't copy your signature from Google Docs or Word</strong>
+      Pasting from Google Docs or Word is what caused the spam-score problem in the first place — those programs silently wrap your links in hidden redirect addresses. Always copy your signature from this page instead.
+    </div>
+
+    <div class="callout ok">
+      <strong>Good to know</strong>
+      Once Gmail saves your signature, it re-hosts the logo and icons on its own servers — so it'll keep working even with this page closed, and it'll look the same for everyone who emails you.
+    </div>
+  </div>
+
+  <footer>Amplified IM internal tool (DO NOT SHARE)· keep the logo, website and social links unchanged, with love - Dom</footer>
+</div>
+
+<script>
+  // ---- Shared, fixed brand info (do not vary per person) ----
+  const LOGO_URL = "https://raw.githubusercontent.com/Trueconext/TrueConextW/refs/heads/main/assets/amplified%20logo%20sp.png";
+  const SITE_URL = "https://amplifiedim.com";
+  const IG_URL   = "https://instagram.com/amplified.im/";
+  const X_URL    = "https://x.com/AmplifiedIM";
+
+  // ---- Brand-safe color themes (every value is one of our two brand colors, a tint of one, or neutral gray) ----
+  const THEMES = {
+    classic: { name: '#0089c2', sub: '#555555', bar: '#17d67b', link: '#0089c2', icon: '0089c2' },
+    signal:  { name: '#0c9d63', sub: '#555555', bar: '#0089c2', link: '#0c9d63', icon: '0c9d63' },
+    slate:   { name: '#333333', sub: '#666666', bar: '#0089c2', link: '#0089c2', icon: '0089c2' }
+  };
+  let selectedTheme = 'classic';
+  let selectedLayout = 'horizontal';
+
+  const els = {
+    fullName: document.getElementById('fullName'),
+    jobTitle: document.getElementById('jobTitle'),
+    companyLine: document.getElementById('companyLine'),
+    isDept: document.getElementById('isDept'),
+    nameLabel: document.getElementById('nameLabel'),
+    titleField: document.getElementById('titleField'),
+    email: document.getElementById('email'),
+    phone: document.getElementById('phone'),
+    output: document.getElementById('signature-output'),
+    empty: document.getElementById('emptyState'),
+    copyBtn: document.getElementById('copyBtn'),
+    downloadBtn: document.getElementById('downloadBtn'),
+    copiedMsg: document.getElementById('copiedMsg'),
+  };
+
+  function esc(str){
+    const d = document.createElement('div');
+    d.textContent = str || '';
+    return d.innerHTML;
+  }
+
+  function telHref(phone){
+    return '+' + phone.replace(/[^0-9]/g, '');
+  }
+
+  function buildSignatureHTML(){
+    const isDept = els.isDept.checked;
+    const name  = esc(els.fullName.value.trim());
+    const title = esc(els.jobTitle.value.trim());
+    const companyLine = esc(els.companyLine.value.trim());
+    const email = els.email.value.trim();
+    const phone = els.phone.value.trim();
+    const t = THEMES[selectedTheme] || THEMES.classic;
+    const igIcon = 'https://img.icons8.com/ios-filled/50/' + t.icon + '/instagram-new.png';
+    const xIcon  = 'https://img.icons8.com/ios-filled/50/' + t.icon + '/twitterx.png';
+
+    let contactRow = '';
+    if (email || phone) {
+      const parts = [];
+      if (phone) {
+        parts.push('<a href="tel:' + esc(telHref(phone)) + '" style="color:#555555;text-decoration:none;">' + esc(phone) + '</a>');
+      }
+      if (email) {
+        parts.push('<a href="mailto:' + esc(email) + '" style="color:#555555;text-decoration:none;">' + esc(email) + '</a>');
+      }
+      contactRow = '<div style="font-size:12px;color:#555555;margin-bottom:8px;line-height:1.3;">' + parts.join(' &nbsp;|&nbsp; ') + '</div>';
+    }
+
+    // Build the line under the name. For a person: title, plus the optional
+    // department line if filled in. For a department: just the optional
+    // department line (there's no title to show).
+    let subLine = '';
+    if (!isDept && title) {
+      subLine = companyLine ? (title + ' &bull; ' + companyLine) : title;
+    } else if (isDept && companyLine) {
+      subLine = companyLine;
+    }
+    const subLineHTML = subLine
+      ? '<div style="font-size: 13px; color: ' + t.sub + '; font-weight: 500; margin-bottom: 6px; line-height: 1.2;">' + subLine + '</div>'
+      : '';
+
+    const innerContent = `
+      <div style="font-size: 17px; font-weight: bold; color: ${t.name}; margin-bottom: 2px; line-height: 1.2;">${name}</div>
+      ${subLineHTML}
+      ${contactRow}
+      <div style="font-size: 12px; margin-bottom: 8px; line-height: 1.2;">
+        <a href="${SITE_URL}" target="_blank" style="color: ${t.link}; text-decoration: none; font-weight: bold;">amplifiedim.com</a>
+      </div>
+      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; margin: 0; padding: 0;">
+        <tr>
+          <td valign="middle" style="font-size: 11px; font-weight: bold; color: #999999; text-transform: uppercase; letter-spacing: 0.5px; padding-right: 12px; line-height: 1;">Connect with us:</td>
+          <td valign="middle" style="padding-right: 10px; line-height: 1px;">
+            <a href="${IG_URL}" target="_blank" style="text-decoration: none; display: block;">
+              <img src="${igIcon}" alt="Instagram" title="Instagram" width="18" height="18" style="display: block; border: 0; width: 18px; height: 18px;" />
+            </a>
+          </td>
+          <td valign="middle" style="line-height: 1px;">
+            <a href="${X_URL}" target="_blank" style="text-decoration: none; display: block;">
+              <img src="${xIcon}" alt="X" title="X" width="17" height="17" style="display: block; border: 0; width: 17px; height: 17px;" />
+            </a>
+          </td>
+        </tr>
+      </table>`;
+
+    // The logo, website and social links are identical across every layout —
+    // only the table structure around them changes.
+    let brandBlock;
+    if (selectedLayout === 'stacked') {
+      brandBlock = `
+<table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, Helvetica, sans-serif; color: #333333; margin: 0; padding: 0; border-collapse: collapse; background-color: transparent;">
+  <tr>
+    <td align="left" style="padding-bottom: 10px;">
+      <a href="${SITE_URL}" target="_blank" style="text-decoration: none; display: inline-block;">
+        <img src="${LOGO_URL}" alt="Amplified IM Logo" title="Amplified IM Logo" width="80" style="display: block; border: 0; width: 80px; height: auto; max-height: 80px;" />
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td style="border-top: 3px solid ${t.bar}; padding-top: 12px; line-height: 1.4;">${innerContent}
+    </td>
+  </tr>
+</table>`;
+    } else if (selectedLayout === 'compact') {
+      brandBlock = `
+<table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, Helvetica, sans-serif; color: #333333; margin: 0; padding: 0; border-collapse: collapse; background-color: transparent;">
+  <tr>
+    <td valign="middle" style="padding-right: 16px; padding-top: 2px; padding-bottom: 2px; line-height: 1.4;">${innerContent}
+    </td>
+    <td valign="middle" bgcolor="${t.bar}" style="width: 3px; min-width: 3px; max-width: 3px; background-color: ${t.bar}; padding: 0; margin: 0; font-size: 1px; line-height: 1px;">&nbsp;</td>
+    <td valign="middle" align="center" style="width: 64px; min-width: 64px; max-width: 64px; padding-left: 16px;">
+      <a href="${SITE_URL}" target="_blank" style="text-decoration: none; display: block;">
+        <img src="${LOGO_URL}" alt="Amplified IM Logo" title="Amplified IM Logo" width="64" style="display: block; margin: 0 auto; border: 0; width: 64px; height: auto; max-height: 64px;" />
+      </a>
+    </td>
+  </tr>
+</table>`;
+    } else {
+      brandBlock = `
+<table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, Helvetica, sans-serif; color: #333333; margin: 0; padding: 0; border-collapse: collapse; background-color: transparent;">
+  <tr>
+    <td valign="middle" align="center" style="padding-right: 16px; width: 80px; min-width: 80px; max-width: 80px; text-align: center;">
+      <a href="${SITE_URL}" target="_blank" style="text-decoration: none; display: block;">
+        <img src="${LOGO_URL}" alt="Amplified IM Logo" title="Amplified IM Logo" width="80" style="display: block; margin: 0 auto; border: 0; width: 80px; height: auto; max-height: 80px;" />
+      </a>
+    </td>
+    <td valign="middle" bgcolor="${t.bar}" style="width: 3px; min-width: 3px; max-width: 3px; background-color: ${t.bar}; padding: 0; margin: 0; font-size: 1px; line-height: 1px;">&nbsp;</td>
+    <td valign="middle" style="padding-left: 16px; padding-top: 2px; padding-bottom: 2px; line-height: 1.4;">${innerContent}
+    </td>
+  </tr>
+</table>`;
+    }
+
+    return (brandBlock + `
+<div style="margin-top: 16px; max-width: 480px; border-top: 1px solid #e0e0e0; padding-top: 10px; font-family: Arial, Helvetica, sans-serif;">
+  <p style="font-size: 10px; line-height: 1.4; color: #999999; margin: 0; text-align: justify;">
+    <strong style="color: #666666;">Confidentiality Note:</strong> This email and any files transmitted with it are confidential and intended solely for the use of the individual or entity to whom they are addressed. If you have received this email in error, please notify the sender and delete it immediately. Distribution or copying of this message without prior consent is strictly prohibited.
+  </p>
+</div>`).trim();
+  }
+
+  function updateModeUI(){
+    const isDept = els.isDept.checked;
+    if (isDept) {
+      els.nameLabel.innerHTML = 'Department name <span class="req">*</span>';
+      els.fullName.placeholder = 'e.g. Finance & Accounting';
+      els.titleField.style.display = 'none';
+    } else {
+      els.nameLabel.innerHTML = 'Full name <span class="req">*</span>';
+      els.fullName.placeholder = 'e.g. Haley Beatrice Rodriguez';
+      els.titleField.style.display = 'block';
+    }
+  }
+
+  function refresh(){
+    const isDept = els.isDept.checked;
+    const ready = isDept
+      ? els.fullName.value.trim().length > 0
+      : els.fullName.value.trim().length > 0 && els.jobTitle.value.trim().length > 0;
+    els.copyBtn.disabled = !ready;
+    els.downloadBtn.disabled = !ready;
+    els.copiedMsg.style.display = 'none';
+
+    if (!ready) {
+      els.output.style.display = 'none';
+      els.empty.style.display = 'block';
+      return;
+    }
+    els.empty.style.display = 'none';
+    els.output.style.display = 'block';
+    els.output.innerHTML = buildSignatureHTML();
+  }
+
+  [els.fullName, els.jobTitle, els.companyLine, els.email, els.phone].forEach(el => {
+    el.addEventListener('input', refresh);
+  });
+  els.isDept.addEventListener('change', () => { updateModeUI(); refresh(); });
+
+  document.querySelectorAll('#themeGrid .theme-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('#themeGrid .theme-card').forEach(c => c.setAttribute('aria-pressed', 'false'));
+      card.setAttribute('aria-pressed', 'true');
+      selectedTheme = card.getAttribute('data-theme');
+      refresh();
+    });
+  });
+
+  document.querySelectorAll('#layoutGrid .theme-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('#layoutGrid .theme-card').forEach(c => c.setAttribute('aria-pressed', 'false'));
+      card.setAttribute('aria-pressed', 'true');
+      selectedLayout = card.getAttribute('data-layout');
+      refresh();
+    });
+  });
+
+  async function copySignature(){
+    if (els.copyBtn.disabled) return;
+    const html = els.output.innerHTML;
+    const text = els.output.innerText;
+    try {
+      if (navigator.clipboard && window.ClipboardItem) {
+        const item = new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([text], { type: 'text/plain' })
+        });
+        await navigator.clipboard.write([item]);
+      } else {
+        throw new Error('ClipboardItem unsupported');
+      }
+    } catch (e) {
+      const range = document.createRange();
+      range.selectNode(els.output);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      document.execCommand('copy');
+      sel.removeAllRanges();
+    }
+    els.copiedMsg.style.display = 'flex';
+  }
+
+  function downloadSignature(){
+    if (els.downloadBtn.disabled) return;
+    const name = els.fullName.value.trim().replace(/[^a-z0-9]+/gi, '_');
+    const doc = '<!DOCTYPE html>\n<html><head><meta charset="UTF-8"></head><body>\n' + els.output.innerHTML + '\n</body></html>';
+    const blob = new Blob([doc], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (name || 'signature') + '_signature.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  els.copyBtn.addEventListener('click', copySignature);
+  els.downloadBtn.addEventListener('click', downloadSignature);
+
+  updateModeUI();
+  refresh();
+</script>
+</body>
+</html>
